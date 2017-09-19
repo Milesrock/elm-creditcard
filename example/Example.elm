@@ -3,7 +3,7 @@ module Example exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
-import CreditCard
+import CreditCard exposing (Valid(..))
 
 
 main : Program Never Model Msg
@@ -34,17 +34,13 @@ model =
 
 type Msg
     = UpdateCreditCard CreditCard.Msg
-    | ValidateCreditCard
 
 
 update : Msg -> Model -> Model
 update msg model =
     case msg of
         UpdateCreditCard creditCardMsg ->
-            { model | creditCard = (CreditCard.updateCreditCard creditCardMsg model.creditCard) }
-
-        ValidateCreditCard ->
-            { model | creditCard = (CreditCard.updateCreditCard CreditCard.ValidateCreditCard model.creditCard) }
+            { model | creditCard = CreditCard.updateCreditCard creditCardMsg model.creditCard }
 
 
 
@@ -58,11 +54,11 @@ view ({ creditCard } as model) =
             [ type_ "text"
             , placeholder "Name"
             , onInput (UpdateCreditCard << CreditCard.UpdateName)
-            , value (creditCard.name |> CreditCard.displayName)
+            , value (creditCard.cardHolderNameField.value)
             , style
-                [ if creditCard.name.valid == Just False then
+                [ if creditCard.cardHolderNameField.valid == Tested False then
                     ( "backgroundColor", "red" )
-                  else if creditCard.name.valid == Just True then
+                  else if creditCard.cardHolderNameField.valid == Tested True then
                     ( "backgroundColor", "green" )
                   else
                     ( "backgroundColor", "transparent" )
@@ -73,11 +69,11 @@ view ({ creditCard } as model) =
             [ type_ "text"
             , placeholder "Card number"
             , onInput (UpdateCreditCard << CreditCard.UpdateCardNumber)
-            , value (creditCard.cardNumber |> CreditCard.displayCardNumber)
+            , value (creditCard.cardNumberField.value |> CreditCard.displayCardNumber)
             , style
-                [ if creditCard.cardNumber.valid == Just False then
+                [ if creditCard.cardNumberField.valid == Tested False then
                     ( "backgroundColor", "red" )
-                  else if creditCard.cardNumber.valid == Just True then
+                  else if creditCard.cardNumberField.valid == Tested True then
                     ( "backgroundColor", "green" )
                   else
                     ( "backgroundColor", "transparent" )
@@ -88,11 +84,11 @@ view ({ creditCard } as model) =
             [ type_ "text"
             , placeholder "Expiration"
             , onInput (UpdateCreditCard << CreditCard.UpdateExpiration)
-            , value (creditCard.expiration |> CreditCard.displayExpiration)
+            , value (creditCard.expirationField.value)
             , style
-                [ if creditCard.expiration.valid == Just False then
+                [ if creditCard.expirationField.valid == Tested False then
                     ( "backgroundColor", "red" )
-                  else if creditCard.expiration.valid == Just True then
+                  else if creditCard.expirationField.valid == Tested True then
                     ( "backgroundColor", "green" )
                   else
                     ( "backgroundColor", "transparent" )
@@ -103,17 +99,17 @@ view ({ creditCard } as model) =
             [ type_ "text"
             , placeholder "Cvc"
             , onInput (UpdateCreditCard << CreditCard.UpdateCvc)
-            , value (creditCard.cvc |> CreditCard.displayCvc)
+            , value (creditCard.cvcField.value)
             , style
-                [ if creditCard.cvc.valid == Just False then
+                [ if creditCard.cvcField.valid == Tested False then
                     ( "backgroundColor", "red" )
-                  else if creditCard.cvc.valid == Just True then
+                  else if creditCard.cvcField.valid == Tested True then
                     ( "backgroundColor", "green" )
                   else
                     ( "backgroundColor", "transparent" )
                 ]
             ]
             []
-        , button [ onClick ValidateCreditCard ] [ text "Valider la carte" ]
+        , button [ onClick (UpdateCreditCard CreditCard.ValidateCreditCard) ] [ text "Valider la carte" ]
         , p [] [ text (toString model.creditCard) ]
         ]
