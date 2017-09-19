@@ -1,7 +1,20 @@
-module CreditCard exposing (..)
+module CreditCard
+    exposing
+        ( CreditCard
+        , Valid(..)
+        , Msg(..)
+        , initialCreditCard
+        , updateCreditCard
+        , displayCardNumber
+        )
 
 import CreditCard.Constant as Constant
 import Regex
+
+
+--
+-- TYPES
+--
 
 
 type Valid
@@ -24,8 +37,8 @@ type alias StringFieldWithoutOptions =
     StringField ()
 
 
-initStringFieldWithoutOptions : StringFieldWithoutOptions
-initStringFieldWithoutOptions =
+initialStringFieldWithoutOptions : StringFieldWithoutOptions
+initialStringFieldWithoutOptions =
     { value = ""
     , valid = NotTested
     , options = ()
@@ -36,8 +49,8 @@ type alias Expiration =
     StringField { yearFormat : YearFormat }
 
 
-initExpiration : Expiration
-initExpiration =
+initialExpiration : Expiration
+initialExpiration =
     { value = ""
     , valid = NotTested
     , options = { yearFormat = TwoOrFourDigits }
@@ -50,37 +63,40 @@ type YearFormat
     | TwoOrFourDigits
 
 
-type Provider
-    = Mastercard
-    | Visa
-    | AmericanExpress
-    | DinersClub
-    | Discover
-    | JCB
-    | Other
+
+-- type Provider
+-- = Mastercard
+-- | Visa
+-- | AmericanExpress
+-- | DinersClub
+-- | Discover
+-- | JCB
+-- | Other
 
 
 type alias CreditCard =
     { cardHolderNameField : StringFieldWithoutOptions
     , cardNumberField : StringFieldWithoutOptions
     , cvcField : StringFieldWithoutOptions
-    , expirationField : Expiration
-    , provider : Maybe Provider
+    , expirationField :
+        Expiration
+        -- , provider : Maybe Provider
     }
 
 
 initialCreditCard : CreditCard
 initialCreditCard =
-    { cardHolderNameField = initStringFieldWithoutOptions
-    , cardNumberField = initStringFieldWithoutOptions
-    , cvcField = initStringFieldWithoutOptions
-    , expirationField = initExpiration
-    , provider = Nothing
+    { cardHolderNameField = initialStringFieldWithoutOptions
+    , cardNumberField = initialStringFieldWithoutOptions
+    , cvcField = initialStringFieldWithoutOptions
+    , expirationField =
+        initialExpiration
+        -- , provider = Nothing
     }
 
 
 type Msg
-    = UpdateName String
+    = UpdateCardHolderName String
     | UpdateCardNumber String
     | UpdateExpiration String
     | UpdateCvc String
@@ -88,7 +104,9 @@ type Msg
 
 
 
--- Text Formatters
+--
+-- TEXT FORMATTERS
+--
 
 
 splitEvery : Int -> String -> List String
@@ -146,7 +164,9 @@ formatCvc =
 
 
 
--- Display
+--
+-- DISPLAY
+--
 
 
 displayCardNumber : String -> String
@@ -155,7 +175,9 @@ displayCardNumber =
 
 
 
+--
 -- VALIDATIONS
+--
 
 
 partiallyValidExpiration : Int -> String -> Bool
@@ -218,7 +240,7 @@ validateExpirationDate { value, options } =
                     "\\d{4}"
 
                 TwoOrFourDigits ->
-                    "\\d{2}\\d{2}?"
+                    "\\d{2}(?:\\d{2})?"
 
         month =
             value
@@ -244,7 +266,15 @@ validateExpirationDate { value, options } =
         isValidYear =
             case year of
                 Ok x ->
-                    x >= 2017
+                    case options.yearFormat of
+                        TwoDigits ->
+                            x >= 17
+
+                        FourDigits ->
+                            x >= 2017
+
+                        TwoOrFourDigits ->
+                            ((x >= 17) && (x <= 99)) || (x >= 2017)
 
                 Err _ ->
                     False
@@ -275,7 +305,9 @@ validateCreditCard creditCard =
 
 
 
+--
 -- UPDATE
+--
 
 
 unsetValid : Field a b -> Field a b
@@ -322,6 +354,12 @@ updateExpirationField expiration creditCard =
              else
                 4
             )
+
+        threeDigitsCheck =
+            Regex.contains (Regex.regex ("^\\d{3,}$"))
+
+        insertSlashAtTwo =
+            (String.left 2 expiration) ++ "/" ++ (String.dropLeft 2 expiration)
     in
         { creditCard
             | expirationField =
@@ -329,6 +367,8 @@ updateExpirationField expiration creditCard =
                     |> unsetValid
                     >> (if partiallyValidExpiration limitLength expiration then
                             setValue expiration
+                        else if threeDigitsCheck expiration then
+                            setValue insertSlashAtTwo
                         else
                             identity
                        )
@@ -348,7 +388,7 @@ updateCvcField cvc creditCard =
 updateCreditCard : Msg -> CreditCard -> CreditCard
 updateCreditCard msg =
     case msg of
-        UpdateName name ->
+        UpdateCardHolderName name ->
             updateCardHolderNameField name
 
         UpdateCardNumber cardNumber ->

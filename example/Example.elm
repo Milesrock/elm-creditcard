@@ -1,17 +1,18 @@
 module Example exposing (..)
 
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (onInput, onClick)
-import CreditCard exposing (Valid(..))
+import BodyBuilder exposing (..)
+import Elegant exposing (..)
+import CreditCard as CC exposing (Valid(..))
+import Color
 
 
 main : Program Never Model Msg
 main =
-    Html.beginnerProgram
-        { model = model
-        , view = view
+    BodyBuilder.program
+        { init = init
         , update = update
+        , subscriptions = always Sub.none
+        , view = view
         }
 
 
@@ -20,12 +21,12 @@ main =
 
 
 type alias Model =
-    { creditCard : CreditCard.CreditCard }
+    { creditCard : CC.CreditCard }
 
 
-model : Model
-model =
-    { creditCard = CreditCard.initialCreditCard }
+init : ( Model, Cmd Msg )
+init =
+    { creditCard = CC.initialCreditCard } ! []
 
 
 
@@ -33,83 +34,81 @@ model =
 
 
 type Msg
-    = UpdateCreditCard CreditCard.Msg
+    = UpdateCreditCard CC.Msg
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         UpdateCreditCard creditCardMsg ->
-            { model | creditCard = CreditCard.updateCreditCard creditCardMsg model.creditCard }
+            { model | creditCard = CC.updateCreditCard creditCardMsg model.creditCard } ! []
 
 
 
 -- VIEW
 
 
-view : Model -> Html Msg
+containerStyle =
+    style
+        [ marginAuto
+        , Elegant.width (Px 300)
+        , fontFamilySansSerif
+        , marginVertical huge
+        , padding large
+        , borderSolid
+        , borderColor (Color.rgb 200 200 200)
+        , borderWidth 1
+        ]
+
+
+formComponentStyle color =
+    style
+        [ displayBlock
+        , padding tiny
+        , borderSolid
+        , borderColor (Color.rgb 200 200 200)
+        , borderWidth 1
+        , marginVertical medium
+        , borderRadius 4
+        , backgroundColor color
+        , fullWidth
+        , textCenter
+        ]
+
+
+inputField placeholderValue msg field display =
+    let
+        inputBackgroundColor =
+            case field.valid of
+                NotTested ->
+                    transparent
+
+                Tested True ->
+                    Color.rgb 200 240 220
+
+                Tested False ->
+                    Color.rgb 250 215 220
+    in
+        inputText
+            [ placeholder placeholderValue
+            , onInput (UpdateCreditCard << msg)
+            , value (display field)
+            , formComponentStyle inputBackgroundColor
+            ]
+
+
 view ({ creditCard } as model) =
-    div []
-        [ input
-            [ type_ "text"
-            , placeholder "Name"
-            , onInput (UpdateCreditCard << CreditCard.UpdateName)
-            , value (creditCard.cardHolderNameField.value)
-            , style
-                [ if creditCard.cardHolderNameField.valid == Tested False then
-                    ( "backgroundColor", "red" )
-                  else if creditCard.cardHolderNameField.valid == Tested True then
-                    ( "backgroundColor", "green" )
-                  else
-                    ( "backgroundColor", "transparent" )
-                ]
+    div
+        [ containerStyle
+        ]
+        [ inputField "Name" CC.UpdateCardHolderName creditCard.cardHolderNameField .value
+        , inputField "Card number" CC.UpdateCardNumber creditCard.cardNumberField (.value >> CC.displayCardNumber)
+        , inputField "Expiration" CC.UpdateExpiration creditCard.expirationField .value
+        , inputField "Cvc" CC.UpdateCvc creditCard.cvcField .value
+        , div
+            [ onClick (UpdateCreditCard CC.ValidateCreditCard)
+            , style [ cursorPointer ]
+            , formComponentStyle (Color.rgb 0 125 255)
             ]
-            []
-        , input
-            [ type_ "text"
-            , placeholder "Card number"
-            , onInput (UpdateCreditCard << CreditCard.UpdateCardNumber)
-            , value (creditCard.cardNumberField.value |> CreditCard.displayCardNumber)
-            , style
-                [ if creditCard.cardNumberField.valid == Tested False then
-                    ( "backgroundColor", "red" )
-                  else if creditCard.cardNumberField.valid == Tested True then
-                    ( "backgroundColor", "green" )
-                  else
-                    ( "backgroundColor", "transparent" )
-                ]
-            ]
-            []
-        , input
-            [ type_ "text"
-            , placeholder "Expiration"
-            , onInput (UpdateCreditCard << CreditCard.UpdateExpiration)
-            , value (creditCard.expirationField.value)
-            , style
-                [ if creditCard.expirationField.valid == Tested False then
-                    ( "backgroundColor", "red" )
-                  else if creditCard.expirationField.valid == Tested True then
-                    ( "backgroundColor", "green" )
-                  else
-                    ( "backgroundColor", "transparent" )
-                ]
-            ]
-            []
-        , input
-            [ type_ "text"
-            , placeholder "Cvc"
-            , onInput (UpdateCreditCard << CreditCard.UpdateCvc)
-            , value (creditCard.cvcField.value)
-            , style
-                [ if creditCard.cvcField.valid == Tested False then
-                    ( "backgroundColor", "red" )
-                  else if creditCard.cvcField.valid == Tested True then
-                    ( "backgroundColor", "green" )
-                  else
-                    ( "backgroundColor", "transparent" )
-                ]
-            ]
-            []
-        , button [ onClick (UpdateCreditCard CreditCard.ValidateCreditCard) ] [ text "Valider la carte" ]
-        , p [] [ text (toString model.creditCard) ]
+            [ text "Valider la carte" ]
         ]

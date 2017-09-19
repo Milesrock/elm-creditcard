@@ -2,6 +2,8 @@ Faire la documentation
 
 Faire une fonction d'initialisation de CB plus sexy.
 
+Implémenter correctement la validation de l'année de l'expiration
+
 Mettre en place la détection du provider :
 
 ```
