@@ -48,6 +48,15 @@ update msg model =
 -- VIEW
 
 
+displayProvider provider =
+    case provider of
+        Nothing ->
+            ""
+
+        Just p ->
+            toString p
+
+
 containerStyle =
     style
         [ marginAuto
@@ -103,6 +112,7 @@ view ({ creditCard } as model) =
         ]
         [ inputField "Name" CC.UpdateCardHolderName creditCard.cardHolderNameField .value
         , inputField "Card number" CC.UpdateCardNumber creditCard.cardNumberField (.value >> CC.displayCardNumber)
+        , p [ style [ textCenter ] ] [ text (displayProvider creditCard.provider) ]
         , inputField "Expiration" CC.UpdateExpiration creditCard.expirationField .value
         , inputField "Cvc" CC.UpdateCvc creditCard.cvcField .value
         , div

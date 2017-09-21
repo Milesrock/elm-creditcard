@@ -63,24 +63,22 @@ type YearFormat
     | TwoOrFourDigits
 
 
-
--- type Provider
--- = Mastercard
--- | Visa
--- | AmericanExpress
--- | DinersClub
--- | Discover
--- | JCB
--- | Other
+type Provider
+    = Mastercard
+    | Visa
+    | AmericanExpress
+    | DinersClub
+    | Discover
+    | JCB
+    | Other
 
 
 type alias CreditCard =
     { cardHolderNameField : StringFieldWithoutOptions
     , cardNumberField : StringFieldWithoutOptions
     , cvcField : StringFieldWithoutOptions
-    , expirationField :
-        Expiration
-        -- , provider : Maybe Provider
+    , expirationField : Expiration
+    , provider : Maybe Provider
     }
 
 
@@ -89,9 +87,8 @@ initialCreditCard =
     { cardHolderNameField = initialStringFieldWithoutOptions
     , cardNumberField = initialStringFieldWithoutOptions
     , cvcField = initialStringFieldWithoutOptions
-    , expirationField =
-        initialExpiration
-        -- , provider = Nothing
+    , expirationField = initialExpiration
+    , provider = Nothing
     }
 
 
@@ -161,6 +158,27 @@ formatCardNumber =
 formatCvc : String -> String
 formatCvc =
     onlyNumbers >> String.left Constant.cvcMaxLength
+
+
+identifyProvider : String -> Maybe Provider
+identifyProvider cardNumber =
+    if (String.length cardNumber) >= 4 then
+        if Regex.contains (Regex.regex "^5[1-5]") cardNumber then
+            Just Mastercard
+        else if Regex.contains (Regex.regex "^4") cardNumber then
+            Just Visa
+        else if Regex.contains (Regex.regex "^3[47]") cardNumber then
+            Just AmericanExpress
+        else if Regex.contains (Regex.regex "^3(0[0-5]|[68])") cardNumber then
+            Just DinersClub
+        else if Regex.contains (Regex.regex "^6011") cardNumber then
+            Just Discover
+        else if Regex.contains (Regex.regex "^(3|2131|1800)") cardNumber then
+            Just JCB
+        else
+            Just Other
+    else
+        Nothing
 
 
 
@@ -335,14 +353,18 @@ updateCardHolderNameField cardHolderName creditCard =
     }
 
 
-updateCardNumberField : String -> CreditCard -> CreditCard
-updateCardNumberField cardNumber creditCard =
-    { creditCard
-        | cardNumberField =
+updateCardNumberAndProviderFields : String -> CreditCard -> CreditCard
+updateCardNumberAndProviderFields cardNumber creditCard =
+    let
+        newCardNumberField =
             creditCard.cardNumberField
                 |> unsetValid
                 >> setValue (formatCardNumber cardNumber)
-    }
+    in
+        { creditCard
+            | cardNumberField = newCardNumberField
+            , provider = identifyProvider newCardNumberField.value
+        }
 
 
 updateExpirationField : String -> CreditCard -> CreditCard
@@ -392,7 +414,7 @@ updateCreditCard msg =
             updateCardHolderNameField name
 
         UpdateCardNumber cardNumber ->
-            updateCardNumberField cardNumber
+            updateCardNumberAndProviderFields cardNumber
 
         UpdateExpiration expiration ->
             updateExpirationField expiration
