@@ -8,6 +8,7 @@ module CreditCard
         , initCreditCardDefault
         , displayField
         , update
+        , validate
         )
 
 {-|
@@ -19,10 +20,12 @@ module CreditCard
 @docs initCreditCardDefault
 @docs displayField
 @docs update
+@docs validate
 -}
 
 import CreditCard.Constant as Constant
 import CreditCard.Helper as Helper
+import Regex
 
 
 {-
@@ -51,7 +54,11 @@ initCreditCard : YearFormat -> Bool -> CreditCard
 initCreditCard yearFormat separateDisplay =
     { holderName = HolderName (initFieldContent ())
     , number = Number (initFieldContent ())
-    , expiration = Expiration (initFieldContent (initExpirationOptions yearFormat separateDisplay))
+    , expiration =
+        Expiration
+            (initFieldContent
+                (initExpirationOptions yearFormat separateDisplay)
+            )
     , cvc = Cvc (initFieldContent ())
     , issuer = Nothing
     }
@@ -80,8 +87,8 @@ initFieldContent fieldOptions =
 
 
 type alias ExpirationType =
-    { month : Int
-    , year : Int
+    { month : String
+    , year : String
     }
 
 
@@ -139,7 +146,7 @@ displayNumber value =
 
 displayExpiration : ExpirationType -> String
 displayExpiration value =
-    (toString value.month) ++ "/" ++ (toString value.year)
+    value.month ++ "/" ++ value.year
 
 
 displayCvc : Int -> String
@@ -178,6 +185,7 @@ displayField field =
 {-
    UPDATE
 -}
+-- FIELDS UPDATE FUNCTIONS
 
 
 updateCreditCard : CreditCard -> CreditCard
@@ -201,9 +209,100 @@ updateField field input =
             updateCreditCard
 
 
+
+-- FIELDS VALIDATION FUNCTION
+
+
+validateHolderName : String -> Bool
+validateHolderName =
+    Regex.contains (Regex.regex "^[A-Za-z'-. ]{2,26}$")
+
+
+validateNumber : String -> Bool
+validateNumber =
+    Regex.contains (Regex.regex "^\\d{12,19}$")
+
+
+validateExpiration : ExpirationOptions -> ExpirationType -> Bool
+validateExpiration options value =
+    let
+        month =
+            value.month |> String.toInt
+
+        year =
+            value.year |> String.toInt
+
+        isValidMonth =
+            case month of
+                Ok x ->
+                    x <= 12
+
+                Err _ ->
+                    False
+
+        isValidYear =
+            case year of
+                Ok x ->
+                    case options.yearFormat of
+                        TwoDigits ->
+                            x >= 17
+
+                        FourDigits ->
+                            x >= 2017
+
+                        TwoOrFourDigits ->
+                            ((x >= 17) && (x <= 99)) || (x >= 2017)
+
+                Err _ ->
+                    False
+    in
+        isValidMonth && isValidYear
+
+
+validateCvc : Int -> Bool
+validateCvc value =
+    value >= 100 && value <= 9999
+
+
+validateMaybeValue : Maybe a -> (a -> Bool) -> Bool
+validateMaybeValue maybeValue validationFunction =
+    case maybeValue of
+        Nothing ->
+            False
+
+        Just value ->
+            validationFunction value
+
+
+validateField : Field -> Field
+validateField field =
+    case field of
+        HolderName fieldContent ->
+            HolderName { fieldContent | valid = Tested (validateMaybeValue fieldContent.value validateHolderName) }
+
+        Number fieldContent ->
+            Number { fieldContent | valid = Tested (validateMaybeValue fieldContent.value validateNumber) }
+
+        Expiration fieldContent ->
+            Expiration { fieldContent | valid = Tested (validateMaybeValue fieldContent.value (validateExpiration fieldContent.options)) }
+
+        Cvc fieldContent ->
+            Cvc { fieldContent | valid = Tested (validateMaybeValue fieldContent.value validateCvc) }
+
+
+{-| -}
 validate : CreditCard -> CreditCard
 validate creditCard =
-    creditCard
+    { creditCard
+        | holderName =
+            validateField creditCard.holderName
+        , number =
+            validateField creditCard.number
+        , expiration =
+            validateField creditCard.expiration
+        , cvc =
+            validateField creditCard.cvc
+    }
 
 
 {-| -}

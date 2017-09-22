@@ -8,7 +8,7 @@ nameMinLength =
 
 nameMaxLength : Int
 nameMaxLength =
-    21
+    26
 
 
 cardNumberMinLength : Int
