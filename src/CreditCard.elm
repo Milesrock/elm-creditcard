@@ -1,10 +1,32 @@
-module CreditCard exposing (..)
+module CreditCard
+    exposing
+        ( CreditCard
+        , YearFormat
+        , Issuer
+        , initCreditCard
+        , initCreditCardDefault
+        , displayField
+        )
+
+{-|
+@docs CreditCard
+@docs YearFormat
+@docs Issuer
+@docs initCreditCard
+@docs initCreditCardDefault
+@docs displayField
+-}
+
+import CreditCard.Constant as Constant
+import CreditCard.Helper as Helper
+
 
 {-
    MODEL
 -}
 
 
+{-| -}
 type alias CreditCard =
     { holderName : Field
     , number : Field
@@ -14,11 +36,13 @@ type alias CreditCard =
     }
 
 
+{-| -}
 initCreditCardDefault : CreditCard
 initCreditCardDefault =
     initCreditCard TwoOrFourDigits True
 
 
+{-| -}
 initCreditCard : YearFormat -> Bool -> CreditCard
 initCreditCard yearFormat separateDisplay =
     { holderName = HolderName (initFieldContent ())
@@ -75,6 +99,7 @@ type Valid
     | Tested Bool
 
 
+{-| -}
 type Issuer
     = Visa
     | Mastercard
@@ -85,6 +110,7 @@ type Issuer
     | Other
 
 
+{-| -}
 type YearFormat
     = TwoDigits
     | FourDigits
@@ -93,5 +119,58 @@ type YearFormat
 
 
 {-
-   MSG
+   DISPLAY
+-}
+
+
+displayCardHolder : String -> String
+displayCardHolder value =
+    value
+
+
+displayNumber : String -> String
+displayNumber value =
+    Helper.putEvery " " Constant.cardNumberBlockLength value
+
+
+displayExpiration : ExpirationType -> String
+displayExpiration value =
+    (toString value.month) ++ "/" ++ (toString value.year)
+
+
+displayCvc : Int -> String
+displayCvc value =
+    toString value
+
+
+displayMaybeValue : Maybe a -> (a -> String) -> String
+displayMaybeValue maybeValue displayFunction =
+    case maybeValue of
+        Nothing ->
+            ""
+
+        Just value ->
+            displayFunction value
+
+
+{-| -}
+displayField : Field -> String
+displayField field =
+    case field of
+        HolderName fieldContent ->
+            displayMaybeValue fieldContent.value displayCardHolder
+
+        Number fieldContent ->
+            displayMaybeValue fieldContent.value displayNumber
+
+        Expiration fieldContent ->
+            displayMaybeValue fieldContent.value displayExpiration
+
+        Cvc fieldContent ->
+            displayMaybeValue fieldContent.value displayCvc
+
+
+
+{-
+   UPDATE
 -}

@@ -1,21 +1,33 @@
 module Blah exposing (..)
 
-import Html exposing (..)
+import BodyBuilder exposing (..)
 import CreditCard as CC
 
 
+main : Program Never Model Model
 main =
-    beginnerProgram
-        { model = model
+    BodyBuilder.program
+        { init = init
+        , update = \msg model -> model ! []
+        , subscriptions = always Sub.none
         , view = view
-        , update = \_ _ -> model
         }
 
 
-model : CC.CreditCard
-model =
-    CC.initCreditCard
+type alias Model =
+    CC.CreditCard
 
 
-view model =
-    div [] [ text (toString model.name.value) ]
+init : ( Model, Cmd msg )
+init =
+    CC.initCreditCardDefault ! []
+
+
+view : Model -> Node interactiveContent NotPhrasing Spanning NotListElement msg
+view { holderName, number, expiration, cvc, issuer } =
+    div []
+        [ p [] [ text (holderName |> CC.displayField) ]
+        , p [] [ text (number |> CC.displayField) ]
+        , p [] [ text (expiration |> CC.displayField) ]
+        , p [] [ text (cvc |> CC.displayField) ]
+        ]
