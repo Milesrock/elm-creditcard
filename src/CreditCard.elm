@@ -3,18 +3,22 @@ module CreditCard
         ( CreditCard
         , YearFormat
         , Issuer
+        , Msg(..)
         , initCreditCard
         , initCreditCardDefault
         , displayField
+        , update
         )
 
 {-|
 @docs CreditCard
 @docs YearFormat
 @docs Issuer
+@docs Msg
 @docs initCreditCard
 @docs initCreditCardDefault
 @docs displayField
+@docs update
 -}
 
 import CreditCard.Constant as Constant
@@ -174,3 +178,46 @@ displayField field =
 {-
    UPDATE
 -}
+
+
+updateCreditCard : CreditCard -> CreditCard
+updateCreditCard creditCard =
+    creditCard
+
+
+updateField : Field -> String -> CreditCard -> CreditCard
+updateField field input =
+    case field of
+        HolderName fieldContent ->
+            updateCreditCard
+
+        Number fieldContent ->
+            updateCreditCard
+
+        Expiration fieldContent ->
+            updateCreditCard
+
+        Cvc fieldContent ->
+            updateCreditCard
+
+
+validate : CreditCard -> CreditCard
+validate creditCard =
+    creditCard
+
+
+{-| -}
+type Msg
+    = UpdateField Field String
+    | Validate
+
+
+{-| -}
+update : Msg -> CreditCard -> CreditCard
+update msg =
+    case msg of
+        UpdateField field input ->
+            updateField field input
+
+        Validate ->
+            validate
