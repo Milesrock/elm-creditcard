@@ -1,5 +1,5 @@
 {
-    "version": "1.0.0",
+    "version": "2.0.0",
     "summary": "package to handle credit card details. It can store, format and validate them.",
     "repository": "https://github.com/guillaumeboudon/elm-creditcard.git",
     "license": "BSD-3-Clause",
@@ -7,7 +7,7 @@
         "src"
     ],
     "exposed-modules": [
-      "CreditCard"
+        "CreditCard"
     ],
     "dependencies": {
         "elm-bodybuilder/elegant": "6.0.0 <= v < 7.0.0",
