@@ -18,3 +18,18 @@ splitEvery blockLength =
 putEvery : String -> Int -> String -> String
 putEvery separator blockLength =
     splitEvery blockLength >> String.join separator
+
+
+removeRegex : String -> String -> String
+removeRegex regex =
+    Regex.replace Regex.All (Regex.regex regex) (\_ -> "")
+
+
+onlyNumbers : String -> String
+onlyNumbers =
+    removeRegex "\\D"
+
+
+onlyHolderNameCharacters : String -> String
+onlyHolderNameCharacters =
+    removeRegex "[^A-Za-z'-. ]"

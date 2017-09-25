@@ -1,28 +1,28 @@
 module CreditCard.Constant exposing (..)
 
 
-nameMinLength : Int
-nameMinLength =
+holderNameMinLength : Int
+holderNameMinLength =
     2
 
 
-nameMaxLength : Int
-nameMaxLength =
+holderNameMaxLength : Int
+holderNameMaxLength =
     26
 
 
-cardNumberMinLength : Int
-cardNumberMinLength =
+numberMinLength : Int
+numberMinLength =
     12
 
 
-cardNumberMaxLength : Int
-cardNumberMaxLength =
+numberMaxLength : Int
+numberMaxLength =
     19
 
 
-cardNumberBlockLength : Int
-cardNumberBlockLength =
+numberBlockLength : Int
+numberBlockLength =
     4
 
 

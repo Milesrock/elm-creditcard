@@ -1,26 +1,30 @@
 module CreditCard
     exposing
         ( CreditCard
+        , Field
         , YearFormat
-        , Issuer
+        , Issuer(..)
+        , Valid(..)
         , Msg(..)
         , initCreditCard
         , initCreditCardDefault
         , displayField
         , update
-        , validate
+        , isValid
         )
 
 {-|
 @docs CreditCard
+@docs Field
 @docs YearFormat
 @docs Issuer
+@docs Valid
 @docs Msg
 @docs initCreditCard
 @docs initCreditCardDefault
 @docs displayField
 @docs update
-@docs validate
+@docs isValid
 -}
 
 import CreditCard.Constant as Constant
@@ -57,28 +61,30 @@ initCreditCard yearFormat separateDisplay =
     , expiration =
         Expiration
             (initFieldContent
-                (initExpirationOptions yearFormat separateDisplay)
+                (initExpirationOptions yearFormat)
             )
     , cvc = Cvc (initFieldContent ())
     , issuer = Nothing
     }
 
 
+{-| Union type of all creditcard fields.
+-}
 type Field
-    = HolderName (FieldContent String ())
-    | Number (FieldContent String ())
-    | Expiration (FieldContent ExpirationType ExpirationOptions)
-    | Cvc (FieldContent Int ())
+    = HolderName (FieldContent ())
+    | Number (FieldContent ())
+    | Expiration (FieldContent ExpirationOptions)
+    | Cvc (FieldContent ())
 
 
-type alias FieldContent valueType optionsType =
-    { value : Maybe valueType
+type alias FieldContent optionsType =
+    { value : Maybe String
     , valid : Valid
     , options : optionsType
     }
 
 
-initFieldContent : b -> FieldContent a b
+initFieldContent : a -> FieldContent a
 initFieldContent fieldOptions =
     { value = Nothing
     , valid = NotTested
@@ -86,25 +92,18 @@ initFieldContent fieldOptions =
     }
 
 
-type alias ExpirationType =
-    { month : String
-    , year : String
-    }
-
-
 type alias ExpirationOptions =
     { yearFormat : YearFormat
-    , separateDisplay : Bool
     }
 
 
-initExpirationOptions : YearFormat -> Bool -> ExpirationOptions
-initExpirationOptions yearFormat separateDisplay =
+initExpirationOptions : YearFormat -> ExpirationOptions
+initExpirationOptions yearFormat =
     { yearFormat = yearFormat
-    , separateDisplay = separateDisplay
     }
 
 
+{-| -}
 type Valid
     = NotTested
     | Tested Bool
@@ -134,24 +133,9 @@ type YearFormat
 -}
 
 
-displayCardHolder : String -> String
-displayCardHolder value =
-    value
-
-
 displayNumber : String -> String
 displayNumber value =
-    Helper.putEvery " " Constant.cardNumberBlockLength value
-
-
-displayExpiration : ExpirationType -> String
-displayExpiration value =
-    value.month ++ "/" ++ value.year
-
-
-displayCvc : Int -> String
-displayCvc value =
-    toString value
+    Helper.putEvery " " Constant.numberBlockLength value
 
 
 displayMaybeValue : Maybe a -> (a -> String) -> String
@@ -169,16 +153,16 @@ displayField : Field -> String
 displayField field =
     case field of
         HolderName fieldContent ->
-            displayMaybeValue fieldContent.value displayCardHolder
+            displayMaybeValue fieldContent.value identity
 
         Number fieldContent ->
             displayMaybeValue fieldContent.value displayNumber
 
         Expiration fieldContent ->
-            displayMaybeValue fieldContent.value displayExpiration
+            displayMaybeValue fieldContent.value identity
 
         Cvc fieldContent ->
-            displayMaybeValue fieldContent.value displayCvc
+            displayMaybeValue fieldContent.value identity
 
 
 
@@ -188,25 +172,101 @@ displayField field =
 -- FIELDS UPDATE FUNCTIONS
 
 
-updateCreditCard : CreditCard -> CreditCard
-updateCreditCard creditCard =
-    creditCard
+partiallyValidExpiration : Int -> String -> Bool
+partiallyValidExpiration limitLength =
+    Regex.contains
+        (Regex.regex ("^\\d{1,2}(?:/\\d{0," ++ (toString limitLength) ++ "})?$"))
 
 
-updateField : Field -> String -> CreditCard -> CreditCard
-updateField field input =
+formatHolderName : String -> String
+formatHolderName =
+    Helper.onlyHolderNameCharacters >> String.left Constant.holderNameMaxLength
+
+
+formatCardNumber : String -> String
+formatCardNumber =
+    Helper.onlyNumbers >> String.left Constant.numberMaxLength
+
+
+formatExpiration : FieldContent ExpirationOptions -> String -> String
+formatExpiration fieldContent input =
+    let
+        limitLength =
+            (if fieldContent.options.yearFormat == TwoDigits then
+                2
+             else
+                4
+            )
+
+        threeDigitsCheck =
+            Regex.contains (Regex.regex ("^\\d{3,}$"))
+
+        insertSlashAtTwo =
+            (String.left 2 input) ++ "/" ++ (String.dropLeft 2 input)
+    in
+        if partiallyValidExpiration limitLength input then
+            input
+        else if threeDigitsCheck input then
+            insertSlashAtTwo
+        else
+            case fieldContent.value of
+                Nothing ->
+                    ""
+
+                Just value ->
+                    value
+
+
+formatCvc : String -> String
+formatCvc =
+    Helper.onlyNumbers >> String.left Constant.cvcMaxLength
+
+
+updateFieldContentOnSetValue : String -> FieldContent a -> FieldContent a
+updateFieldContentOnSetValue setNewValue fieldContent =
+    { fieldContent
+        | value = Just setNewValue
+        , valid = NotTested
+    }
+
+
+setHolderName : String -> FieldContent () -> CreditCard -> CreditCard
+setHolderName newValue fieldContent creditCard =
+    { creditCard | holderName = HolderName (updateFieldContentOnSetValue newValue fieldContent) }
+
+
+setNumber : String -> FieldContent () -> CreditCard -> CreditCard
+setNumber newValue fieldContent creditCard =
+    { creditCard
+        | number = Number (updateFieldContentOnSetValue newValue fieldContent)
+        , issuer = identifyIssuer newValue
+    }
+
+
+setExpiration : String -> FieldContent ExpirationOptions -> CreditCard -> CreditCard
+setExpiration newValue fieldContent creditCard =
+    { creditCard | expiration = Expiration (updateFieldContentOnSetValue newValue fieldContent) }
+
+
+setCvc : String -> FieldContent () -> CreditCard -> CreditCard
+setCvc newValue fieldContent creditCard =
+    { creditCard | cvc = Cvc (updateFieldContentOnSetValue newValue fieldContent) }
+
+
+setValue : Field -> String -> CreditCard -> CreditCard
+setValue field input =
     case field of
         HolderName fieldContent ->
-            updateCreditCard
+            setHolderName (formatHolderName input) fieldContent
 
         Number fieldContent ->
-            updateCreditCard
+            setNumber (formatCardNumber input) fieldContent
 
         Expiration fieldContent ->
-            updateCreditCard
+            setExpiration (formatExpiration fieldContent input) fieldContent
 
         Cvc fieldContent ->
-            updateCreditCard
+            setCvc (formatCvc input) fieldContent
 
 
 
@@ -215,7 +275,15 @@ updateField field input =
 
 validateHolderName : String -> Bool
 validateHolderName =
-    Regex.contains (Regex.regex "^[A-Za-z'-. ]{2,26}$")
+    let
+        validationRegex =
+            "^[A-Za-z'-. ]{"
+                ++ (toString Constant.holderNameMinLength)
+                ++ ","
+                ++ (toString Constant.holderNameMaxLength)
+                ++ "}$"
+    in
+        Regex.contains (Regex.regex validationRegex)
 
 
 validateNumber : String -> Bool
@@ -223,14 +291,14 @@ validateNumber =
     Regex.contains (Regex.regex "^\\d{12,19}$")
 
 
-validateExpiration : ExpirationOptions -> ExpirationType -> Bool
+validateExpiration : ExpirationOptions -> String -> Bool
 validateExpiration options value =
     let
         month =
-            value.month |> String.toInt
+            String.left 2 value |> String.toInt
 
         year =
-            value.year |> String.toInt
+            String.dropLeft 3 value |> String.toInt
 
         isValidMonth =
             case month of
@@ -259,9 +327,13 @@ validateExpiration options value =
         isValidMonth && isValidYear
 
 
-validateCvc : Int -> Bool
+validateCvc : String -> Bool
 validateCvc value =
-    value >= 100 && value <= 9999
+    let
+        rangeRegexSnippet =
+            (toString Constant.cvcMinLength) ++ "," ++ (toString Constant.cvcMaxLength)
+    in
+        Regex.contains (Regex.regex ("^\\d{" ++ rangeRegexSnippet ++ "}$")) value
 
 
 validateMaybeValue : Maybe a -> (a -> Bool) -> Bool
@@ -276,23 +348,27 @@ validateMaybeValue maybeValue validationFunction =
 
 validateField : Field -> Field
 validateField field =
-    case field of
-        HolderName fieldContent ->
-            HolderName { fieldContent | valid = Tested (validateMaybeValue fieldContent.value validateHolderName) }
+    let
+        updateValid fieldType fieldContent validationFunction =
+            fieldType { fieldContent | valid = Tested (validateMaybeValue fieldContent.value validationFunction) }
+    in
+        case field of
+            HolderName fieldContent ->
+                updateValid HolderName fieldContent validateHolderName
 
-        Number fieldContent ->
-            Number { fieldContent | valid = Tested (validateMaybeValue fieldContent.value validateNumber) }
+            Number fieldContent ->
+                updateValid Number fieldContent validateNumber
 
-        Expiration fieldContent ->
-            Expiration { fieldContent | valid = Tested (validateMaybeValue fieldContent.value (validateExpiration fieldContent.options)) }
+            Expiration fieldContent ->
+                updateValid Expiration fieldContent (validateExpiration fieldContent.options)
 
-        Cvc fieldContent ->
-            Cvc { fieldContent | valid = Tested (validateMaybeValue fieldContent.value validateCvc) }
+            Cvc fieldContent ->
+                updateValid Cvc fieldContent validateCvc
 
 
 {-| -}
-validate : CreditCard -> CreditCard
-validate creditCard =
+validateCreditCard : CreditCard -> CreditCard
+validateCreditCard creditCard =
     { creditCard
         | holderName =
             validateField creditCard.holderName
@@ -307,7 +383,7 @@ validate creditCard =
 
 {-| -}
 type Msg
-    = UpdateField Field String
+    = SetValue Field String
     | Validate
 
 
@@ -315,8 +391,46 @@ type Msg
 update : Msg -> CreditCard -> CreditCard
 update msg =
     case msg of
-        UpdateField field input ->
-            updateField field input
+        SetValue field input ->
+            setValue field input
 
         Validate ->
-            validate
+            validateCreditCard
+
+
+identifyIssuer : String -> Maybe Issuer
+identifyIssuer cardNumber =
+    if (String.length cardNumber) >= 4 then
+        if Regex.contains (Regex.regex "^5[1-5]") cardNumber then
+            Just Mastercard
+        else if Regex.contains (Regex.regex "^4") cardNumber then
+            Just Visa
+        else if Regex.contains (Regex.regex "^3[47]") cardNumber then
+            Just AmericanExpress
+        else if Regex.contains (Regex.regex "^3(0[0-5]|[68])") cardNumber then
+            Just DinersClub
+        else if Regex.contains (Regex.regex "^6011") cardNumber then
+            Just Discover
+        else if Regex.contains (Regex.regex "^(3|2131|1800)") cardNumber then
+            Just JCB
+        else
+            Just Other
+    else
+        Nothing
+
+
+{-| -}
+isValid : Field -> Valid
+isValid field =
+    case field of
+        HolderName fieldContent ->
+            fieldContent.valid
+
+        Number fieldContent ->
+            fieldContent.valid
+
+        Expiration fieldContent ->
+            fieldContent.valid
+
+        Cvc fieldContent ->
+            fieldContent.valid
