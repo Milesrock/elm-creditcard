@@ -10,6 +10,7 @@ module CreditCard
         , initCreditCardDefault
         , displayField
         , update
+        , fieldValue
         , isValid
         )
 
@@ -25,6 +26,7 @@ module CreditCard
 @docs initCreditCardDefault
 @docs displayField
 @docs update
+@docs fieldValue
 @docs isValid
 
 -}
@@ -37,7 +39,6 @@ import Regex
 {-
    MODEL
 -}
-
 
 
 {-| The main model for this package.
@@ -59,7 +60,8 @@ initCreditCardDefault =
     initCreditCard TwoOrFourDigits True
 
 
-{-| The function to initialize a new credit card model. -}
+{-| The function to initialize a new credit card model.
+-}
 initCreditCard : YearFormat -> Bool -> CreditCard
 initCreditCard yearFormat separateDisplay =
     { holderName = HolderName (initFieldContent ())
@@ -133,13 +135,14 @@ type Issuer
 {-| Year formatting fot the expiration. It can be set to:
     - 2 digits: mm/yy
     - 4 digits: mm/yyyy
-    - é or 4 digits: both values are accepted, but not mm/yyy (it doesn't mean anything)
+    - 2 or 4 digits: both values are accepted, but not mm/yyy (it doesn't mean anything)
 Update, and validation functions use this to control expiration value.
 -}
 type YearFormat
     = TwoDigits
     | FourDigits
     | TwoOrFourDigits
+
 
 
 {-
@@ -458,6 +461,31 @@ identifyIssuer cardNumber =
             Just Other
     else
         Nothing
+
+
+{-| A helper to return the raw string value of a given field.
+-}
+fieldValue : Field -> String
+fieldValue field =
+    let
+        value =
+            case field of
+                HolderName fieldContent ->
+                    fieldContent.value
+
+                HolderEmail fieldContent ->
+                    fieldContent.value
+
+                Number fieldContent ->
+                    fieldContent.value
+
+                Expiration fieldContent ->
+                    fieldContent.value
+
+                Cvc fieldContent ->
+                    fieldContent.value
+    in
+        Maybe.withDefault "" value
 
 
 {-| A helper to render the validation state of a field.
