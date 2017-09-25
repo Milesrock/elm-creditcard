@@ -1,4 +1,4 @@
-module Example exposing (..)
+module Blah exposing (..)
 
 import BodyBuilder exposing (..)
 import Elegant exposing (..)
@@ -17,7 +17,7 @@ main =
 
 
 
--- MODEL
+-- INIT
 
 
 type alias Model =
@@ -26,7 +26,7 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    { creditCard = CC.initialCreditCard } ! []
+    { creditCard = CC.initCreditCardDefault } ! []
 
 
 
@@ -41,22 +41,26 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         UpdateCreditCard creditCardMsg ->
-            { model | creditCard = CC.updateCreditCard creditCardMsg model.creditCard } ! []
+            { model | creditCard = CC.update creditCardMsg model.creditCard } ! []
 
 
 
 -- VIEW
 
 
-displayProvider provider =
-    case provider of
+displayIssuer : Maybe CC.Issuer -> String
+displayIssuer issuer =
+    case issuer of
         Nothing ->
             ""
 
-        Just p ->
-            toString p
+        Just i ->
+            toString i
 
 
+containerStyle :
+    { a | style : StyleAttribute }
+    -> { a | style : StyleAttribute }
 containerStyle =
     style
         [ marginAuto
@@ -70,6 +74,10 @@ containerStyle =
         ]
 
 
+formComponentStyle :
+    Color.Color
+    -> { a | style : StyleAttribute }
+    -> { a | style : StyleAttribute }
 formComponentStyle color =
     style
         [ displayBlock
@@ -82,13 +90,15 @@ formComponentStyle color =
         , backgroundColor color
         , fullWidth
         , textCenter
+        , fontSize (Px 14)
         ]
 
 
-inputField placeholderValue msg field display =
+inputField : String -> CC.Field -> Node Interactive phrasingContent spanningContent listContent Msg
+inputField placeholderValue field =
     let
         inputBackgroundColor =
-            case field.valid of
+            case CC.isValid field of
                 NotTested ->
                     transparent
 
@@ -100,24 +110,24 @@ inputField placeholderValue msg field display =
     in
         inputText
             [ placeholder placeholderValue
-            , onInput (UpdateCreditCard << msg)
-            , value (display field)
+            , onInput (UpdateCreditCard << CC.SetValue field)
+            , value (CC.displayField field)
             , formComponentStyle inputBackgroundColor
             ]
 
 
-view ({ creditCard } as model) =
-    div
-        [ containerStyle
-        ]
-        [ inputField "Name" CC.UpdateCardHolderName creditCard.cardHolderNameField .value
-        , inputField "Card number" CC.UpdateCardNumber creditCard.cardNumberField (.value >> CC.displayCardNumber)
-        , p [ style [ textCenter ] ] [ text (displayProvider creditCard.provider) ]
-        , inputField "Expiration" CC.UpdateExpiration creditCard.expirationField .value
-        , inputField "Cvc" CC.UpdateCvc creditCard.cvcField .value
+view : Model -> Node Interactive NotPhrasing Spanning NotListElement Msg
+view { creditCard } =
+    div [ containerStyle ]
+        [ inputField "Name" creditCard.holderName
+        , inputField "Email" creditCard.holderEmail
+        , inputField "Card number" creditCard.number
+        , p [ style [ textCenter ] ] [ text (displayIssuer creditCard.issuer) ]
+        , inputField "Expiration" creditCard.expiration
+        , inputField "Cvc" creditCard.cvc
         , div
-            [ onClick (UpdateCreditCard CC.ValidateCreditCard)
-            , style [ cursorPointer ]
+            [ onClick (UpdateCreditCard CC.Validate)
+            , style [ cursorPointer, fontSize (Px 14) ]
             , formComponentStyle (Color.rgb 0 125 255)
             ]
             [ text "Valider la carte" ]
