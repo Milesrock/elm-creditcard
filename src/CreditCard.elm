@@ -14,6 +14,7 @@ module CreditCard
         )
 
 {-|
+
 @docs CreditCard
 @docs Field
 @docs YearFormat
@@ -25,6 +26,7 @@ module CreditCard
 @docs displayField
 @docs update
 @docs isValid
+
 -}
 
 import CreditCard.Constant as Constant
@@ -37,7 +39,9 @@ import Regex
 -}
 
 
-{-| -}
+
+{-| The main model for this package.
+-}
 type alias CreditCard =
     { holderName : Field
     , holderEmail : Field
@@ -48,13 +52,14 @@ type alias CreditCard =
     }
 
 
-{-| -}
+{-| Initialiaze a new credit card with default values
+-}
 initCreditCardDefault : CreditCard
 initCreditCardDefault =
     initCreditCard TwoOrFourDigits True
 
 
-{-| -}
+{-| The function to initialize a new credit card model. -}
 initCreditCard : YearFormat -> Bool -> CreditCard
 initCreditCard yearFormat separateDisplay =
     { holderName = HolderName (initFieldContent ())
@@ -106,13 +111,15 @@ initExpirationOptions yearFormat =
     }
 
 
-{-| -}
+{-| Usually set to NotTested. When testing a field it's set to Tested True or Tested False, depending on the result of the test.
+-}
 type Valid
     = NotTested
     | Tested Bool
 
 
-{-| -}
+{-| The list of identified credit card issuers. If not identifies, the issuer is set to Other.
+-}
 type Issuer
     = Visa
     | Mastercard
@@ -123,12 +130,16 @@ type Issuer
     | Other
 
 
-{-| -}
+{-| Year formatting fot the expiration. It can be set to:
+    - 2 digits: mm/yy
+    - 4 digits: mm/yyyy
+    - é or 4 digits: both values are accepted, but not mm/yyy (it doesn't mean anything)
+Update, and validation functions use this to control expiration value.
+-}
 type YearFormat
     = TwoDigits
     | FourDigits
     | TwoOrFourDigits
-
 
 
 {-
@@ -151,7 +162,8 @@ displayMaybeValue maybeValue displayFunction =
             displayFunction value
 
 
-{-| -}
+{-| The function to display the card number with a space every 4 numbers.
+-}
 displayField : Field -> String
 displayField field =
     case field of
@@ -392,7 +404,6 @@ validateField field =
                 updateValid Cvc fieldContent validateCvc
 
 
-{-| -}
 validateCreditCard : CreditCard -> CreditCard
 validateCreditCard creditCard =
     { creditCard
@@ -409,13 +420,15 @@ validateCreditCard creditCard =
     }
 
 
-{-| -}
+{-| Updating messages.
+-}
 type Msg
     = SetValue Field String
     | Validate
 
 
-{-| -}
+{-| The updating function for this package.
+-}
 update : Msg -> CreditCard -> CreditCard
 update msg =
     case msg of
@@ -447,7 +460,8 @@ identifyIssuer cardNumber =
         Nothing
 
 
-{-| -}
+{-| A helper to render the validation state of a field.
+-}
 isValid : Field -> Valid
 isValid field =
     case field of
