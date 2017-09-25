@@ -120,6 +120,7 @@ view : Model -> Node Interactive NotPhrasing Spanning NotListElement Msg
 view { creditCard } =
     div [ containerStyle ]
         [ inputField "Name" creditCard.holderName
+        , inputField "Email" creditCard.holderEmail
         , inputField "Card number" creditCard.number
         , p [ style [ textCenter ] ] [ text (displayIssuer creditCard.issuer) ]
         , inputField "Expiration" creditCard.expiration

@@ -40,6 +40,7 @@ import Regex
 {-| -}
 type alias CreditCard =
     { holderName : Field
+    , holderEmail : Field
     , number : Field
     , expiration : Field
     , cvc : Field
@@ -57,6 +58,7 @@ initCreditCardDefault =
 initCreditCard : YearFormat -> Bool -> CreditCard
 initCreditCard yearFormat separateDisplay =
     { holderName = HolderName (initFieldContent ())
+    , holderEmail = HolderEmail (initFieldContent ())
     , number = Number (initFieldContent ())
     , expiration =
         Expiration
@@ -72,6 +74,7 @@ initCreditCard yearFormat separateDisplay =
 -}
 type Field
     = HolderName (FieldContent ())
+    | HolderEmail (FieldContent ())
     | Number (FieldContent ())
     | Expiration (FieldContent ExpirationOptions)
     | Cvc (FieldContent ())
@@ -155,6 +158,9 @@ displayField field =
         HolderName fieldContent ->
             displayMaybeValue fieldContent.value identity
 
+        HolderEmail fieldContent ->
+            displayMaybeValue fieldContent.value identity
+
         Number fieldContent ->
             displayMaybeValue fieldContent.value displayNumber
 
@@ -235,6 +241,11 @@ setHolderName newValue fieldContent creditCard =
     { creditCard | holderName = HolderName (updateFieldContentOnSetValue newValue fieldContent) }
 
 
+setHolderEmail : String -> FieldContent () -> CreditCard -> CreditCard
+setHolderEmail newValue fieldContent creditCard =
+    { creditCard | holderEmail = HolderEmail (updateFieldContentOnSetValue newValue fieldContent) }
+
+
 setNumber : String -> FieldContent () -> CreditCard -> CreditCard
 setNumber newValue fieldContent creditCard =
     { creditCard
@@ -259,6 +270,9 @@ setValue field input =
         HolderName fieldContent ->
             setHolderName (formatHolderName input) fieldContent
 
+        HolderEmail fieldContent ->
+            setHolderEmail input fieldContent
+
         Number fieldContent ->
             setNumber (formatCardNumber input) fieldContent
 
@@ -282,6 +296,15 @@ validateHolderName =
                 ++ ","
                 ++ (toString Constant.holderNameMaxLength)
                 ++ "}$"
+    in
+        Regex.contains (Regex.regex validationRegex)
+
+
+validateHolderEmail : String -> Bool
+validateHolderEmail =
+    let
+        validationRegex =
+            "^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$"
     in
         Regex.contains (Regex.regex validationRegex)
 
@@ -356,6 +379,9 @@ validateField field =
             HolderName fieldContent ->
                 updateValid HolderName fieldContent validateHolderName
 
+            HolderEmail fieldContent ->
+                updateValid HolderEmail fieldContent validateHolderEmail
+
             Number fieldContent ->
                 updateValid Number fieldContent validateNumber
 
@@ -372,6 +398,8 @@ validateCreditCard creditCard =
     { creditCard
         | holderName =
             validateField creditCard.holderName
+        , holderEmail =
+            validateField creditCard.holderEmail
         , number =
             validateField creditCard.number
         , expiration =
@@ -424,6 +452,9 @@ isValid : Field -> Valid
 isValid field =
     case field of
         HolderName fieldContent ->
+            fieldContent.valid
+
+        HolderEmail fieldContent ->
             fieldContent.valid
 
         Number fieldContent ->
