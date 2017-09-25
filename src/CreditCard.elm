@@ -8,6 +8,17 @@ module CreditCard
         , displayCardNumber
         )
 
+{-|
+
+@docs CreditCard
+@docs Valid(..)
+@docs Msg(..)
+@docs initialCreditCard
+@docs updateCreditCard
+@docs displayCardNumber
+
+-}
+
 import CreditCard.Constant as Constant
 import Regex
 
@@ -17,6 +28,8 @@ import Regex
 --
 
 
+{-| Usually set to NotTested. When testing a field it's set to Tested True or Tested False, depending on the result of the test.
+-}
 type Valid
     = NotTested
     | Tested Bool
@@ -73,6 +86,8 @@ type Provider
     | Other
 
 
+{-| The main model for this package.
+-}
 type alias CreditCard =
     { cardHolderNameField : StringFieldWithoutOptions
     , cardNumberField : StringFieldWithoutOptions
@@ -82,6 +97,8 @@ type alias CreditCard =
     }
 
 
+{-| The function to initialize a new credit card model.
+-}
 initialCreditCard : CreditCard
 initialCreditCard =
     { cardHolderNameField = initialStringFieldWithoutOptions
@@ -92,6 +109,8 @@ initialCreditCard =
     }
 
 
+{-| Updating messages.
+-}
 type Msg
     = UpdateCardHolderName String
     | UpdateCardNumber String
@@ -187,6 +206,8 @@ identifyProvider cardNumber =
 --
 
 
+{-| The function to display the card number with a space every 4 numbers.
+-}
 displayCardNumber : String -> String
 displayCardNumber =
     putEvery " " Constant.cardNumberBlockLength
@@ -407,6 +428,8 @@ updateCvcField cvc creditCard =
     }
 
 
+{-| The updating function for this package.
+-}
 updateCreditCard : Msg -> CreditCard -> CreditCard
 updateCreditCard msg =
     case msg of
