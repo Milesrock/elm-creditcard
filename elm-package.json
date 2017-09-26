@@ -1,5 +1,5 @@
 {
-    "version": "2.1.0",
+    "version": "1.0.0",
     "summary": "package to handle credit card details. It can store, format and validate them.",
     "repository": "https://github.com/milesrock/elm-creditcard.git",
     "license": "BSD-3-Clause",
